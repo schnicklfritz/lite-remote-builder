@@ -1,0 +1,26 @@
+# --- Dependencies ---
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# --- Version Control ---
+.git
+.gitignore
+
+# --- OS Junk ---
+.DS_Store
+Thumbs.db
+
+# --- Secrets & Config (CRITICAL) ---
+.env
+*.env
+.github
+docker-compose.yml
+README.md
+
+# --- TypeScript / Build Artifacts ---
+dist
+coverage
+tsconfig.json
+src

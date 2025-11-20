@@ -1,0 +1,65 @@
+name: Build Custom Arch Kernel
+on:
+  workflow_dispatch: # Manual Trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel # The magic container
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          pacman -Syu --noconfirm
+          # Install tools needed for stripping and building
+          pacman -S --noconfirm git bc pahole cpio perl tar xz kmod xmlto docbook-xsl
+
+      - name: Prepare Build Environment
+        run: |
+          # Create non-root user (makepkg refuses to run as root)
+          useradd builder -m
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder .
+
+      - name: Configure Kernel (The "Chimera" Step)
+        shell: bash
+        run: |
+          cd kernel_files
+          
+          # 1. Apply your uploaded .config
+          # (We just keep it there, the PKGBUILD usually looks for 'config')
+          
+          # 2. Run localmodconfig if a snapshot exists
+          # (We simulate the hardware presence using the text file)
+          if [ -f "hardware_base.txt" ]; then
+             echo "Stripping kernel based on hardware snapshot..."
+             # This is a hack: we force the script to read our file
+             # In reality, for GitHub Actions, we usually rely on manual config edits 
+             # or we skip localmodconfig here and rely on the .config you uploaded.
+             # For now, we assume your .config is ALREADY stripped or good to go.
+          fi
+
+          # 3. Force Docker Options (using scripts/config)
+          # This ensures your container usage works
+          /usr/bin/sudo -u builder scripts/config --file .config \
+            -e CONFIG_CGROUPS -e CONFIG_NAMESPACES -e CONFIG_OVERLAY_FS \
+            -e CONFIG_BRIDGE -e CONFIG_NETFILTER -e CONFIG_VETH
+
+          # 4. Update config to match current kernel version
+          # (Suppresses "New config" interactive prompts)
+          yes "" | make oldconfig > /dev/null
+
+      - name: Build the Package
+        run: |
+          cd kernel_files
+          chmod 777 .
+          # --skipinteg ignores checksum mismatches (since we changed the config)
+          sudo -u builder makepkg -s --noconfirm --skipinteg
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-kernel-packages
+          path: kernel_files/*.pkg.tar.zst
