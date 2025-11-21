@@ -2,8 +2,14 @@
   "name": "lite-remote-builder",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "lite-remote-builder": "./dist/index.js"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/index.js",
     "start": "node dist/index.js",
     "watch": "tsc --watch"
   },
@@ -12,7 +18,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^18.0.0",
     "typescript": "^5.0.0"
   }
 }

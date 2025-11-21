@@ -1,65 +1,94 @@
 name: Build Custom Arch Kernel
 on:
-  workflow_dispatch: # Manual Trigger
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or Tag to build'
+        default: 'main'
+      opt_level:
+        description: 'Optimization Level'
+        default: 'O3'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: archlinux:base-devel # The magic container
+    container: 
+      image: archlinux:base-devel # Contains gcc, make, sudo, etc.
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
+      - name: Install Dependencies
         run: |
+          # Update mirrors and install missing tools
           pacman -Syu --noconfirm
-          # Install tools needed for stripping and building
-          pacman -S --noconfirm git bc pahole cpio perl tar xz kmod xmlto docbook-xsl
+          pacman -S --noconfirm git bc pahole cpio perl tar xz kmod xmlto docbook-xsl inetutils
 
-      - name: Prepare Build Environment
+      - name: Prepare Builder User
         run: |
-          # Create non-root user (makepkg refuses to run as root)
-          useradd builder -m
+          # Makepkg cannot run as root. We create 'builder'.
+          useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          
+          # FIX: Ensure builder owns the workspace so it can write files
           chown -R builder:builder .
 
-      - name: Configure Kernel (The "Chimera" Step)
+      - name: Configure & Build
         shell: bash
         run: |
-          cd kernel_files
-          
-          # 1. Apply your uploaded .config
-          # (We just keep it there, the PKGBUILD usually looks for 'config')
-          
-          # 2. Run localmodconfig if a snapshot exists
-          # (We simulate the hardware presence using the text file)
-          if [ -f "hardware_base.txt" ]; then
-             echo "Stripping kernel based on hardware snapshot..."
-             # This is a hack: we force the script to read our file
-             # In reality, for GitHub Actions, we usually rely on manual config edits 
-             # or we skip localmodconfig here and rely on the .config you uploaded.
-             # For now, we assume your .config is ALREADY stripped or good to go.
-          fi
+          # Switch to builder user for everything
+          su builder -c "bash -c '
+            # 1. Clone CachyOS Kernel Source (Deep Clone for versioning)
+            git clone --depth 1 https://github.com/CachyOS/linux-cachyos.git linux
+            cd linux
 
-          # 3. Force Docker Options (using scripts/config)
-          # This ensures your container usage works
-          /usr/bin/sudo -u builder scripts/config --file .config \
-            -e CONFIG_CGROUPS -e CONFIG_NAMESPACES -e CONFIG_OVERLAY_FS \
-            -e CONFIG_BRIDGE -e CONFIG_NETFILTER -e CONFIG_VETH
+            # 2. Start with Default Config
+            make defconfig
 
-          # 4. Update config to match current kernel version
-          # (Suppresses "New config" interactive prompts)
-          yes "" | make oldconfig > /dev/null
+            # 3. APPLY HASWELL OPTIMIZATIONS (The Speed)
+            echo \"KCFLAGS += -march=haswell -mtune=haswell -O3 -pipe\" >> Makefile
+            scripts/config --enable MNATIVE_INTEL
+            scripts/config --disable GENERIC_CPU
+            
+            # 4. APPLY LOCALMODCONFIG (The Danger Step - Handle with Care)
+            if [ -f \"../../hardware_base.txt\" ]; then
+               echo \"⚠️ Applying hardware strip from hardware_base.txt...\"
+               # We point LSMOD to the absolute path of your uploaded text file
+               export LSMOD=$(readlink -f ../../hardware_base.txt)
+               make localmodconfig
+            else
+               echo \"ℹ️ No hardware profile found. Building generic (Safe Mode).\"
+            fi
 
-      - name: Build the Package
-        run: |
-          cd kernel_files
-          chmod 777 .
-          # --skipinteg ignores checksum mismatches (since we changed the config)
-          sudo -u builder makepkg -s --noconfirm --skipinteg
+            # 5. RE-ENABLE CRITICAL MODULES (Safety Net)
+            # localmodconfig might kill these if not in your text file. We force them back.
+            scripts/config --enable NTFS3_FS
+            scripts/config --enable EXFAT_FS
+            scripts/config --enable USB_STORAGE
+            scripts/config --enable USB_UAS
+            scripts/config --enable KVM_INTEL
+
+            # 6. STRIP MITIGATIONS
+            scripts/config --disable PAGE_TABLE_ISOLATION
+            scripts/config --disable RETPOLINE
+            scripts/config --disable MITIGATION_SPECTRE_V2
+
+            # 7. BUILD
+            # Update config and build
+            make olddefconfig
+            make -j\$(nproc) bzImage modules
+            
+            # 8. PACKAGE
+            mkdir -p ../artifact/boot
+            cp arch/x86/boot/bzImage ../artifact/boot/vmlinuz-linux-haswell
+            make INSTALL_MOD_PATH=../artifact modules_install
+            # Strip debug symbols to save 500MB+
+            find ../artifact/lib/modules -name \"*.ko\" -exec strip --strip-debug {} +
+          '"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: custom-kernel-packages
-          path: kernel_files/*.pkg.tar.zst
+          name: custom-kernel-haswell
+          path: artifact/
