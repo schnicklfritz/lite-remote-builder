@@ -3,129 +3,107 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
-// 1. CONFIG: Environment Variables
+// CONFIGURATION
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const OWNER = process.env.GITHUB_USER;
 const REPO = process.env.GITHUB_REPO;
 
+// Hardcoded proxy agent for GitHub requests ONLY
+const PROXY_URL = "socks5h://192.168.49.1:8229";
+const proxyAgent = new SocksProxyAgent(PROXY_URL);
+
+// Startup check for essential variables
 if (!GITHUB_TOKEN || !OWNER || !REPO) {
   throw new Error("Missing required environment variables: GITHUB_TOKEN, GITHUB_USER, GITHUB_REPO");
 }
 
-// 2. SERVER INITIALIZATION
+// SERVER INITIALIZATION
 const server = new Server(
-  { name: "lite-remote-builder", version: "3.2.0" }, // Bumped version for CachyOS support
+  { name: "lite-remote-builder", version: "3.3.0" }, // Version bump for hardcoded proxy fix
   { capabilities: { tools: {} } }
 );
 
-// 3. HELPERS
+// HELPER for GitHub API requests, routed through the proxy
 async function githubRequest(endpoint: string, options: RequestInit = {}) {
   const url = `https://api.github.com/repos/${OWNER}/${REPO}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
+
+  // Cast to 'any' to satisfy TypeScript's strict DOM-based RequestInit type
+  const response = await (fetch as any)(url, {
+    ...(options as any),
+    agent: proxyAgent, // This Node.js-specific option is the fix
     headers: {
       "Authorization": `Bearer ${GITHUB_TOKEN}`,
       "Accept": "application/vnd.github.v3+json",
       "Content-Type": "application/json",
-      ...options.headers,
+      ...(options as any).headers,
     },
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub API Error [${response.status}]: ${response.statusText} - ${url}`);
+    throw new Error(`GitHub API Error [${response.status}]: ${response.statusText}`);
   }
-  
-  // Return JSON if content exists, otherwise null (for 204 No Content)
   return response.status === 204 ? null : response.json();
 }
 
-// 4. TOOL DEFINITIONS
+// TOOL DEFINITIONS
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
         name: "trigger_kernel_build",
-        description: "Dispatches a remote CachyOS Kernel build (Haswell-Optimized + BORE Scheduler).",
+        description: "Dispatches a remote CachyOS Kernel build (Haswell-Optimized).",
         inputSchema: z.object({
-          ref: z.string().default("main").describe("Git branch to build from"),
-          opt_level: z.enum(["O2", "O3"]).default("O3").describe("GCC optimization level (Default: O3 for speed)"),
+          ref: z.string().default("main"),
+          opt_level: z.enum(["O2", "O3"]).default("O3"),
         }),
       },
       {
         name: "check_build_status",
         description: "Lists recent GitHub Action runs to check build progress.",
         inputSchema: z.object({
-          limit: z.number().default(3).describe("Number of recent runs to show"),
+          limit: z.number().default(3),
         }),
       },
     ],
   };
 });
 
-// 5. TOOL EXECUTION
+// TOOL EXECUTION LOGIC
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-
   try {
-    // --- Tool: Trigger Build ---
     if (name === "trigger_kernel_build") {
       const ref = String(args?.ref || "main");
       const opt_level = String(args?.opt_level || "O3");
-
-      // We target the specific YAML file we created in the previous step
-      const workflowId = "build-kernel.yml"; 
-
-      await githubRequest(`/actions/workflows/${workflowId}/dispatches`, {
+      
+      await githubRequest(`/actions/workflows/build-kernel.yml/dispatches`, {
         method: "POST",
         body: JSON.stringify({
           ref: ref,
-          inputs: {
-            opt_level: opt_level // Passes 'O3' to the workflow
-          }
+          inputs: { opt_level: opt_level }
         }),
       });
-
-      return {
-        content: [{ 
-          type: "text", 
-          text: `🚀 DISPATCHED: Building Haswell Speed Kernel (CachyOS/BORE/${opt_level}) on branch '${ref}'.\nCheck status with 'check_build_status'.` 
-        }],
-      };
+      return { content: [{ type: "text", text: `🚀 DISPATCHED: Building kernel on branch '${ref}' with ${opt_level}.` }] };
     }
 
-    // --- Tool: Check Status ---
     if (name === "check_build_status") {
       const limit = Number(args?.limit || 3);
       const data: any = await githubRequest(`/actions/runs?per_page=${limit}`);
-
-      if (!data.workflow_runs || data.workflow_runs.length === 0) {
-        return { content: [{ type: "text", text: "No recent builds found." }] };
-      }
-
-      const statusMsg = data.workflow_runs.map((run: any) => {
-        const icon = run.status === "completed" 
-          ? (run.conclusion === "success" ? "✅" : "❌") 
-          : "🔄";
-        return `${icon} [${run.status}] ${run.name} #${run.run_number}\n   Conclusion: ${run.conclusion || "Running..."}\n   Link: ${run.html_url}`;
-      }).join("\n\n");
-
-      return { content: [{ type: "text", text: statusMsg }] };
+      const statusMsg = data.workflow_runs.map((run: any) => 
+        `• [${run.status}] ${run.name} #${run.run_number}: ${run.conclusion || "Running..."}`
+      ).join("\n");
+      return { content: [{ type: "text", text: statusMsg || "No builds found." }] };
     }
 
     throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-
   } catch (error: any) {
-    // Catch-all error handler to keep the server alive
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: "text", text: `❌ Error executing '${name}': ${errorMessage}` }],
-      isError: true,
-    };
+    return { content: [{ type: "text", text: `❌ MCP Tool Error: ${error.message}` }], isError: true };
   }
 });
 
-// 6. STARTUP
+// SERVER STARTUP
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("Lite Remote Builder MCP Server running on stdio");
+console.error("Lite Remote Builder MCP Server now running on stdio.");

@@ -1,10 +1,7 @@
-name: Build Custom Arch Kernel
+name: Build Haswell Speed Kernel
 on:
   workflow_dispatch:
     inputs:
-      ref:
-        description: 'Branch or Tag to build'
-        default: 'main'
       opt_level:
         description: 'Optimization Level'
         default: 'O3'
@@ -12,83 +9,70 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: 
-      image: archlinux:base-devel # Contains gcc, make, sudo, etc.
-    
+    container: archlinux:latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
       - name: Install Dependencies
+        run: pacman -Syu --noconfirm base-devel git bc pahole cpio perl tar xz xmlto kmod inetutils
+
+      - name: Checkout CachyOS Source
         run: |
-          # Update mirrors and install missing tools
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm git bc pahole cpio perl tar xz kmod xmlto docbook-xsl inetutils
+          # Cloning CachyOS because it defaults to the BORE scheduler (Great for dual-core responsiveness)
+          git clone --depth 1 https://github.com/CachyOS/linux-cachyos.git linux
+          cd linux
 
-      - name: Prepare Builder User
+      - name: Configure for Haswell Speed
+        working-directory: linux
         run: |
-          # Makepkg cannot run as root. We create 'builder'.
-          useradd -m builder
-          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-          
-          # FIX: Ensure builder owns the workspace so it can write files
-          chown -R builder:builder .
+          make defconfig
 
-      - name: Configure & Build
-        shell: bash
+          # --- 1. CPU ARCHITECTURE (The Speed) ---
+          # Force Haswell AVX2 instructions. Generic kernels don't use these.
+          echo "KCFLAGS += -march=haswell -mtune=haswell -O3 -pipe" >> Makefile
+          scripts/config --enable MNATIVE_INTEL
+          scripts/config --disable GENERIC_CPU
+
+          # --- 2. SCHEDULER & LATENCY (The Snap) ---
+          # 1000Hz tick rate is mandatory for smoothness on older CPUs
+          scripts/config --enable HZ_1000
+          scripts/config --disable HZ_300
+          scripts/config --enable SCHED_BORE
+          scripts/config --enable PREEMPT
+
+          # --- 3. STRIP MITIGATIONS (The Unshackling) ---
+          # Remove the Intel security patches that slow down Haswell by ~20%
+          scripts/config --disable PAGE_TABLE_ISOLATION
+          scripts/config --disable RETPOLINE
+          scripts/config --disable MITIGATION_SPECTRE_V2
+          scripts/config --disable MITIGATION_SPECTRE_V1
+          scripts/config --disable MITIGATION_SSB
+          scripts/config --disable MITIGATION_L1TF
+          scripts/config --disable MITIGATION_MDS
+
+          # --- 4. DRIVER SAFETY (The Future Proofing) ---
+          # Explicitly enable drivers for devices you might plug in later
+          scripts/config --enable NTFS3_FS
+          scripts/config --enable EXFAT_FS
+          scripts/config --enable USB_UAS
+          scripts/config --enable KVM_INTEL
+          scripts/config --enable OVERLAY_FS
+
+          make olddefconfig
+
+      - name: Build Kernel
+        working-directory: linux
+        run: make -j$(nproc) bzImage modules
+
+      - name: Package Artifacts
+        working-directory: linux
         run: |
-          # Switch to builder user for everything
-          su builder -c "bash -c '
-            # 1. Clone CachyOS Kernel Source (Deep Clone for versioning)
-            git clone --depth 1 https://github.com/CachyOS/linux-cachyos.git linux
-            cd linux
+          mkdir -p ../artifact/boot
+          cp arch/x86/boot/bzImage ../artifact/boot/vmlinuz-linux-haswell
+          make INSTALL_MOD_PATH=../artifact modules_install
+          # Strip huge debug symbols to keep download small
+          find ../artifact/lib/modules -name "*.ko" -exec strip --strip-debug {} +
 
-            # 2. Start with Default Config
-            make defconfig
-
-            # 3. APPLY HASWELL OPTIMIZATIONS (The Speed)
-            echo \"KCFLAGS += -march=haswell -mtune=haswell -O3 -pipe\" >> Makefile
-            scripts/config --enable MNATIVE_INTEL
-            scripts/config --disable GENERIC_CPU
-            
-            # 4. APPLY LOCALMODCONFIG (The Danger Step - Handle with Care)
-            if [ -f \"../../hardware_base.txt\" ]; then
-               echo \"⚠️ Applying hardware strip from hardware_base.txt...\"
-               # We point LSMOD to the absolute path of your uploaded text file
-               export LSMOD=$(readlink -f ../../hardware_base.txt)
-               make localmodconfig
-            else
-               echo \"ℹ️ No hardware profile found. Building generic (Safe Mode).\"
-            fi
-
-            # 5. RE-ENABLE CRITICAL MODULES (Safety Net)
-            # localmodconfig might kill these if not in your text file. We force them back.
-            scripts/config --enable NTFS3_FS
-            scripts/config --enable EXFAT_FS
-            scripts/config --enable USB_STORAGE
-            scripts/config --enable USB_UAS
-            scripts/config --enable KVM_INTEL
-
-            # 6. STRIP MITIGATIONS
-            scripts/config --disable PAGE_TABLE_ISOLATION
-            scripts/config --disable RETPOLINE
-            scripts/config --disable MITIGATION_SPECTRE_V2
-
-            # 7. BUILD
-            # Update config and build
-            make olddefconfig
-            make -j\$(nproc) bzImage modules
-            
-            # 8. PACKAGE
-            mkdir -p ../artifact/boot
-            cp arch/x86/boot/bzImage ../artifact/boot/vmlinuz-linux-haswell
-            make INSTALL_MOD_PATH=../artifact modules_install
-            # Strip debug symbols to save 500MB+
-            find ../artifact/lib/modules -name \"*.ko\" -exec strip --strip-debug {} +
-          '"
-
-      - name: Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: custom-kernel-haswell
+          name: haswell-speed-kernel
           path: artifact/

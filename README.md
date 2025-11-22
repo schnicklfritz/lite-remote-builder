@@ -1,4 +1,4 @@
-# Lite Remote Builder MCP
+  # Lite Remote Builder MCP
 
 **A lightweight Model Context Protocol (MCP) server for low-resource hardware.**
 
