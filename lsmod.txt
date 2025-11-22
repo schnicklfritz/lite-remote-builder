@@ -1,0 +1,165 @@
+Module                  Size  Used by
+uinput                 28672  0
+rfcomm                106496  4
+cmac                   12288  3
+algif_hash             16384  1
+algif_skcipher         12288  1
+af_alg                 32768  6 algif_hash,algif_skcipher
+btusb                  86016  0
+btrtl                  32768  1 btusb
+btintel                69632  1 btusb
+btbcm                  24576  1 btusb
+btmtk                  36864  1 btusb
+bnep                   32768  2
+snd_seq_dummy          12288  0
+snd_hrtimer            12288  1
+snd_seq               139264  7 snd_seq_dummy
+snd_seq_device         16384  1 snd_seq
+xt_conntrack           12288  3
+xt_MASQUERADE          16384  3
+bridge                487424  0
+stp                    12288  1 bridge
+llc                    16384  2 bridge,stp
+xt_set                 24576  0
+ip_set                 69632  1 xt_set
+xt_addrtype            12288  4
+xfrm_user              69632  1
+xfrm_algo              16384  1 xfrm_user
+ccm                    20480  6
+overlay               253952  0
+nft_fib_inet           12288  1
+nft_fib_ipv4           12288  1 nft_fib_inet
+nft_fib_ipv6           12288  1 nft_fib_inet
+nft_fib                12288  3 nft_fib_ipv6,nft_fib_ipv4,nft_fib_inet
+nft_reject_inet        12288  16
+nf_reject_ipv4         16384  1 nft_reject_inet
+nf_reject_ipv6         24576  1 nft_reject_inet
+nft_reject             12288  1 nft_reject_inet
+nft_ct                 28672  8
+nft_chain_nat          12288  3
+ip6table_nat           12288  1
+ip6table_mangle        12288  0
+ip6table_raw           12288  0
+ip6table_security      12288  0
+iptable_nat            12288  1
+nf_nat                 65536  4 ip6table_nat,nft_chain_nat,iptable_nat,xt_MASQUERADE
+nf_conntrack          208896  4 xt_conntrack,nf_nat,nft_ct,xt_MASQUERADE
+nf_defrag_ipv6         24576  1 nf_conntrack
+nf_defrag_ipv4         12288  1 nf_conntrack
+iptable_mangle         12288  0
+iptable_raw            12288  0
+iptable_security       12288  0
+nf_tables             417792  960 nft_ct,nft_reject_inet,nft_fib_ipv6,nft_fib_ipv4,nft_chain_nat,nft_reject,nft_fib,nft_fib_inet
+ip6table_filter        12288  1
+ip6_tables             36864  5 ip6table_filter,ip6table_raw,ip6table_nat,ip6table_mangle,ip6table_security
+iptable_filter         12288  1
+snd_hda_codec_intelhdmi    28672  1
+snd_hda_codec_hdmi     61440  1 snd_hda_codec_intelhdmi
+snd_hda_codec_alc269   143360  1
+intel_rapl_msr         20480  0
+intel_rapl_common      57344  1 intel_rapl_msr
+x86_pkg_temp_thermal    16384  0
+intel_powerclamp       20480  0
+ath9k                 241664  0
+snd_hda_scodec_component    20480  1 snd_hda_codec_alc269
+coretemp               20480  0
+ath9k_common           53248  1 ath9k
+snd_hda_codec_realtek_lib    69632  1 snd_hda_codec_alc269
+snd_hda_codec_generic   131072  2 snd_hda_codec_realtek_lib,snd_hda_codec_alc269
+ath9k_hw              626688  2 ath9k_common,ath9k
+spi_nor               192512  0
+snd_hda_intel          73728  2
+uvcvideo              184320  0
+kvm_intel             450560  0
+ath                    40960  3 ath9k_common,ath9k,ath9k_hw
+i915                 5107712  82
+mtd                   106496  3 spi_nor
+tg3                   237568  0
+snd_hda_codec         229376  6 snd_hda_codec_generic,snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_hda_codec_intelhdmi
+videobuf2_vmalloc      20480  1 uvcvideo
+kvm                  1490944  1 kvm_intel
+drm_buddy              28672  1 i915
+mac80211             1794048  2 ath9k,ath9k_hw
+snd_hda_core          147456  7 snd_hda_codec_generic,snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_hda_codec_intelhdmi
+ttm                   126976  1 i915
+uvc                    12288  1 uvcvideo
+snd_intel_dspcfg       45056  1 snd_hda_intel
+spi_intel_platform     12288  0
+iTCO_wdt               16384  0
+irqbypass              16384  1 kvm
+videobuf2_memops       16384  1 videobuf2_vmalloc
+snd_intel_sdw_acpi     16384  1 snd_intel_dspcfg
+i2c_algo_bit           24576  1 i915
+mei_hdcp               28672  0
+mei_pxp                20480  0
+spi_intel              36864  1 spi_intel_platform
+libphy                188416  1 tg3
+rapl                   20480  0
+libarc4                12288  1 mac80211
+videobuf2_v4l2         45056  1 uvcvideo
+snd_hwdep              24576  1 snd_hda_codec
+at24                   28672  0
+intel_pmc_bxt          16384  1 iTCO_wdt
+drm_display_helper    303104  1 i915
+intel_cstate           20480  0
+acer_wmi               45056  0
+iTCO_vendor_support    12288  1 iTCO_wdt
+ath3k                  20480  0
+vfat                   20480  1
+fat                   110592  1 vfat
+snd_pcm               233472  4 snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec,snd_hda_core
+mdio_bus               69632  2 libphy,tg3
+intel_uncore          278528  0
+videobuf2_common       98304  4 videobuf2_vmalloc,videobuf2_v4l2,uvcvideo,videobuf2_memops
+platform_profile       20480  1 acer_wmi
+i2c_i801               36864  0
+snd_timer              61440  3 snd_seq,snd_hrtimer,snd_pcm
+cec                   110592  2 drm_display_helper,i915
+mei_me                 57344  2
+cfg80211             1466368  4 ath9k_common,ath9k,ath,mac80211
+sparse_keymap          12288  1 acer_wmi
+bluetooth            1167360  35 btrtl,btmtk,btintel,btbcm,bnep,ath3k,btusb,rfcomm
+videodev              413696  2 videobuf2_v4l2,uvcvideo
+wmi_bmof               12288  0
+i2c_smbus              20480  1 i2c_i801
+pcspkr                 12288  0
+mei                   204800  5 mei_hdcp,mei_pxp,mei_me
+snd                   163840  17 snd_hda_codec_generic,snd_seq,snd_seq_device,snd_hda_codec_hdmi,snd_hwdep,snd_hda_intel,snd_hda_codec,snd_timer,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_pcm
+intel_gtt              32768  1 i915
+ptp                    53248  1 tg3
+i2c_mux                16384  1 i2c_i801
+mc                     98304  4 videodev,videobuf2_v4l2,uvcvideo,videobuf2_common
+pps_core               32768  1 ptp
+lpc_ich                28672  0
+soundcore              16384  1 snd
+rfkill                 45056  10 acer_wmi,ath9k,bluetooth,cfg80211
+joydev                 24576  0
+mousedev               28672  0
+mac_hid                12288  0
+squashfs               98304  3
+loop                   45056  6
+nfnetlink              20480  5 nf_tables,ip_set
+ip_tables              36864  5 iptable_filter,iptable_security,iptable_raw,iptable_nat,iptable_mangle
+x_tables               65536  16 ip6table_filter,xt_conntrack,ip6table_raw,iptable_filter,iptable_security,ip6table_nat,xt_addrtype,xt_set,ip6_tables,iptable_raw,ip_tables,iptable_nat,ip6table_mangle,ip6table_security,xt_MASQUERADE,iptable_mangle
+hid_multitouch         36864  0
+sdhci_pci             118784  0
+psmouse               262144  0
+polyval_clmulni        12288  0
+sdhci_uhs2             40960  1 sdhci_pci
+sdhci                 106496  2 sdhci_uhs2,sdhci_pci
+ghash_clmulni_intel    12288  0
+aesni_intel           102400  7
+cqhci                  45056  1 sdhci_pci
+mmc_core              303104  4 sdhci_uhs2,sdhci,cqhci,sdhci_pci
+video                  81920  2 acer_wmi,i915
+intel_oc_wdt           12288  0
+wmi                    36864  3 video,acer_wmi,wmi_bmof
+serio_raw              20480  0
+dm_mirror              32768  0
+dm_region_hash         24576  1 dm_mirror
+dm_log                 24576  2 dm_region_hash,dm_mirror
+dm_mod                237568  2 dm_log,dm_mirror
+pkcs8_key_parser       12288  0
+i2c_dev                28672  0
+crypto_user            16384  0
+ntsync                 24576  0

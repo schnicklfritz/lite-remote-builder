@@ -1,0 +1,179 @@
+00:00.0 Host bridge: Intel Corporation Haswell-ULT DRAM Controller (rev 09)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0
+	Capabilities: [e0] Vendor Specific Information: Intel Capabilities v1
+		CapA: Peg60Dis- Peg12Dis+ Peg11Dis+ Peg10Dis+ PeLWUDis- DmiWidth=x4
+		      EccDis+ ForceEccEn- VTdDis- DmiG2Dis- PegG2Dis- DDRMaxSize=Unlimited
+		      1NDis- CDDis- DDPCDis+ X2APICEn+ PDCDis- IGDis- CDID=1 CRID=9
+		      DDROCCAP- OCEn- DDRWrtVrefEn- DDR3LEn+
+		CapB: ImguDis- OCbySSKUCap- OCbySSKUEn- SMTCap+ CacheSzCap 0x2
+		      SoftBinCap- DDR3MaxFreqWithRef100=1600MHz PegG3Dis+
+		      PkgTyp+ AddGfxEn- AddGfxCap+ PegX16Dis+ DmiG3Dis- GmmDis-
+		      DDR3MaxFreq=2666MHz LPDDR3En-
+	Kernel driver in use: hsw_uncore
+
+00:02.0 VGA compatible controller: Intel Corporation Haswell-ULT Integrated Graphics Controller (rev 09) (prog-if 00 [VGA controller])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 50
+	Memory at b0000000 (64-bit, non-prefetchable) [size=4M]
+	Memory at a0000000 (64-bit, prefetchable) [size=256M]
+	I/O ports at 3000 [size=64]
+	Expansion ROM at 000c0000 [virtual] [disabled] [size=128K]
+	Capabilities: [90] MSI: Enable+ Count=1/1 Maskable- 64bit-
+	Capabilities: [d0] Power Management version 2
+	Capabilities: [a4] PCI Advanced Features
+	Kernel driver in use: i915
+	Kernel modules: i915
+
+00:03.0 Audio device: Intel Corporation Haswell-ULT HD Audio Controller (rev 09)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 51
+	Memory at b0610000 (64-bit, non-prefetchable) [size=16K]
+	Capabilities: [50] Power Management version 2
+	Capabilities: [60] MSI: Enable+ Count=1/1 Maskable- 64bit-
+	Capabilities: [70] Express Root Complex Integrated Endpoint, IntMsgNum 0
+	Kernel driver in use: snd_hda_intel
+	Kernel modules: snd_hda_intel
+
+00:14.0 USB controller: Intel Corporation 8 Series USB xHCI HC (rev 04) (prog-if 30 [XHCI])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, medium devsel, latency 0, IRQ 43
+	Memory at b0600000 (64-bit, non-prefetchable) [size=64K]
+	Capabilities: [70] Power Management version 2
+	Capabilities: [80] MSI: Enable+ Count=8/8 Maskable- 64bit+
+	Kernel driver in use: xhci_hcd
+
+00:16.0 Communication controller: Intel Corporation 8 Series HECI #0 (rev 04)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 48
+	Memory at b0618000 (64-bit, non-prefetchable) [size=32]
+	Capabilities: [50] Power Management version 3
+	Capabilities: [8c] MSI: Enable+ Count=1/1 Maskable- 64bit+
+	Kernel driver in use: mei_me
+	Kernel modules: mei_me
+
+00:1b.0 Audio device: Intel Corporation 8 Series HD Audio Controller (rev 04)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 49
+	Memory at b0614000 (64-bit, non-prefetchable) [size=16K]
+	Capabilities: [50] Power Management version 3
+	Capabilities: [60] MSI: Enable+ Count=1/1 Maskable- 64bit+
+	Capabilities: [70] Express Root Complex Integrated Endpoint, IntMsgNum 0
+	Capabilities: [100] Virtual Channel
+	Kernel driver in use: snd_hda_intel
+	Kernel modules: snd_hda_intel
+
+00:1c.0 PCI bridge: Intel Corporation 8 Series PCI Express Root Port 3 (rev e4) (prog-if 00 [Normal decode])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 40
+	Bus: primary=00, secondary=01, subordinate=01, sec-latency=0
+	I/O behind bridge: [disabled] [16-bit]
+	Memory behind bridge: 9fb00000-9fbfffff [size=1M] [32-bit]
+	Prefetchable memory behind bridge: b0400000-b04fffff [size=1M] [32-bit]
+	Capabilities: [40] Express Root Port (Slot+), IntMsgNum 0
+	Capabilities: [80] MSI: Enable+ Count=1/1 Maskable- 64bit-
+	Capabilities: [90] Subsystem: Acer Incorporated [ALI] Device 0775
+	Capabilities: [a0] Power Management version 3
+	Capabilities: [100] Null
+	Capabilities: [200] L1 PM Substates
+	Kernel driver in use: pcieport
+
+00:1c.3 PCI bridge: Intel Corporation 8 Series PCI Express Root Port 4 (rev e4) (prog-if 00 [Normal decode])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 41
+	Bus: primary=00, secondary=02, subordinate=02, sec-latency=0
+	I/O behind bridge: [disabled] [16-bit]
+	Memory behind bridge: b0500000-b05fffff [size=1M] [32-bit]
+	Prefetchable memory behind bridge: [disabled] [64-bit]
+	Capabilities: [40] Express Root Port (Slot+), IntMsgNum 0
+	Capabilities: [80] MSI: Enable+ Count=1/1 Maskable- 64bit-
+	Capabilities: [90] Subsystem: Acer Incorporated [ALI] Device 0775
+	Capabilities: [a0] Power Management version 3
+	Capabilities: [100] Null
+	Capabilities: [200] L1 PM Substates
+	Kernel driver in use: pcieport
+
+00:1d.0 USB controller: Intel Corporation 8 Series USB EHCI #1 (rev 04) (prog-if 20 [EHCI])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, medium devsel, latency 0, IRQ 23
+	Memory at b061c000 (32-bit, non-prefetchable) [size=1K]
+	Capabilities: [50] Power Management version 3
+	Capabilities: [58] Debug port: BAR=1 offset=00a0
+	Capabilities: [98] PCI Advanced Features
+	Kernel driver in use: ehci-pci
+
+00:1f.0 ISA bridge: Intel Corporation 8 Series LPC Controller (rev 04)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, medium devsel, latency 0
+	Capabilities: [e0] Vendor Specific Information: Intel Feature Detection
+	Kernel driver in use: lpc_ich
+	Kernel modules: lpc_ich
+
+00:1f.2 SATA controller: Intel Corporation 8 Series SATA Controller 1 [AHCI mode] (rev 04) (prog-if 01 [AHCI 1.0])
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, 66MHz, medium devsel, latency 0, IRQ 42
+	I/O ports at 3088 [size=8]
+	I/O ports at 3094 [size=4]
+	I/O ports at 3080 [size=8]
+	I/O ports at 3090 [size=4]
+	I/O ports at 3060 [size=32]
+	Memory at b061b000 (32-bit, non-prefetchable) [size=2K]
+	Capabilities: [80] MSI: Enable+ Count=1/1 Maskable- 64bit-
+	Capabilities: [70] Power Management version 3
+	Capabilities: [a8] SATA HBA v1.0
+	Kernel driver in use: ahci
+
+00:1f.3 SMBus: Intel Corporation 8 Series SMBus Controller (rev 04)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: medium devsel, IRQ 18
+	Memory at b0619000 (64-bit, non-prefetchable) [size=256]
+	I/O ports at 3040 [size=32]
+	Kernel driver in use: i801_smbus
+	Kernel modules: i2c_i801
+
+01:00.0 Ethernet controller: Broadcom Inc. and subsidiaries NetXtreme BCM57786 Gigabit Ethernet PCIe (rev 01)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 18
+	Memory at b0410000 (64-bit, prefetchable) [size=64K]
+	Memory at b0420000 (64-bit, prefetchable) [size=64K]
+	Expansion ROM at 9fb00000 [disabled] [size=2K]
+	Capabilities: [48] Power Management version 3
+	Capabilities: [50] Vital Product Data
+	Capabilities: [58] MSI: Enable- Count=1/8 Maskable- 64bit+
+	Capabilities: [a0] MSI-X: Enable+ Count=5 Masked-
+	Capabilities: [ac] Express Endpoint, IntMsgNum 0
+	Capabilities: [100] Advanced Error Reporting
+	Capabilities: [13c] Device Serial Number 00-00-20-1a-06-b1-9f-d1
+	Capabilities: [150] Power Budgeting <?>
+	Capabilities: [160] Virtual Channel
+	Capabilities: [1b0] Latency Tolerance Reporting
+	Kernel driver in use: tg3
+	Kernel modules: tg3
+
+01:00.1 SD Host controller: Broadcom Inc. and subsidiaries BCM57765/57785 SDXC/MMC Card Reader (rev 01) (prog-if 01)
+	Subsystem: Acer Incorporated [ALI] Device 0775
+	Flags: bus master, fast devsel, latency 0, IRQ 19
+	Memory at b0400000 (64-bit, prefetchable) [size=64K]
+	Capabilities: [48] Power Management version 3
+	Capabilities: [58] MSI: Enable- Count=1/1 Maskable- 64bit+
+	Capabilities: [ac] Express Endpoint, IntMsgNum 0
+	Capabilities: [100] Advanced Error Reporting
+	Capabilities: [150] Power Budgeting <?>
+	Capabilities: [160] Virtual Channel
+	Kernel driver in use: sdhci-pci
+	Kernel modules: sdhci_pci
+
+02:00.0 Network controller: Qualcomm Atheros QCA9565 / AR9565 Wireless Network Adapter (rev 01)
+	Subsystem: Lite-On Communications Inc Device 0642
+	Flags: bus master, fast devsel, latency 0, IRQ 19
+	Memory at b0500000 (64-bit, non-prefetchable) [size=512K]
+	Expansion ROM at b0580000 [disabled] [size=64K]
+	Capabilities: [40] Power Management version 2
+	Capabilities: [50] MSI: Enable- Count=1/4 Maskable+ 64bit+
+	Capabilities: [70] Express Endpoint, IntMsgNum 0
+	Capabilities: [100] Advanced Error Reporting
+	Capabilities: [140] Virtual Channel
+	Capabilities: [160] Device Serial Number 00-00-00-00-00-00-00-00
+	Kernel driver in use: ath9k
+	Kernel modules: ath9k
+
