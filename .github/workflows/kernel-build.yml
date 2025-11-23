@@ -1,78 +1,67 @@
-name: Build Haswell Speed Kernel
+name: Build Haswell Speed Kernel (Pacman Ready)
+
 on:
   workflow_dispatch:
-    inputs:
-      opt_level:
-        description: 'Optimization Level'
-        default: 'O3'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - name: Install Dependencies
-        run: pacman -Syu --noconfirm base-devel git bc pahole cpio perl tar xz xmlto kmod inetutils
-
-      - name: Checkout CachyOS Source
+      - name: Install Build Dependencies
         run: |
-          # Cloning CachyOS because it defaults to the BORE scheduler (Great for dual-core responsiveness)
-          git clone --depth 1 https://github.com/CachyOS/linux-cachyos.git linux
-          cd linux
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git bc xmlto kmod inetutils libelf cpio perl tar xz python pahole wget
+          # Create build user because makepkg cannot run as root
+          useradd builduser -m
+          passwd -d builduser
+          printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
+          chown -R builduser:builduser .
 
-      - name: Configure for Haswell Speed
-        working-directory: linux
+      - name: Checkout & Configure
+        shell: bash
         run: |
-          make defconfig
+          # Clone CachyOS PKGBUILD source
+          su builduser -c "git clone https://github.com/CachyOS/linux-cachyos.git workdir"
 
-          # --- 1. CPU ARCHITECTURE (The Speed) ---
-          # Force Haswell AVX2 instructions. Generic kernels don't use these.
-          echo "KCFLAGS += -march=haswell -mtune=haswell -O3 -pipe" >> Makefile
-          scripts/config --enable MNATIVE_INTEL
-          scripts/config --disable GENERIC_CPU
-
-          # --- 2. SCHEDULER & LATENCY (The Snap) ---
-          # 1000Hz tick rate is mandatory for smoothness on older CPUs
-          scripts/config --enable HZ_1000
-          scripts/config --disable HZ_300
-          scripts/config --enable SCHED_BORE
-          scripts/config --enable PREEMPT
-
-          # --- 3. STRIP MITIGATIONS (The Unshackling) ---
-          # Remove the Intel security patches that slow down Haswell by ~20%
-          scripts/config --disable PAGE_TABLE_ISOLATION
-          scripts/config --disable RETPOLINE
-          scripts/config --disable MITIGATION_SPECTRE_V2
-          scripts/config --disable MITIGATION_SPECTRE_V1
-          scripts/config --disable MITIGATION_SSB
-          scripts/config --disable MITIGATION_L1TF
-          scripts/config --disable MITIGATION_MDS
-
-          # --- 4. DRIVER SAFETY (The Future Proofing) ---
-          # Explicitly enable drivers for devices you might plug in later
-          scripts/config --enable NTFS3_FS
-          scripts/config --enable EXFAT_FS
-          scripts/config --enable USB_UAS
-          scripts/config --enable KVM_INTEL
-          scripts/config --enable OVERLAY_FS
-
-          make olddefconfig
-
-      - name: Build Kernel
-        working-directory: linux
-        run: make -j$(nproc) bzImage modules
-
-      - name: Package Artifacts
-        working-directory: linux
+      - name: Apply Haswell Speed Patches
+        working-directory: workdir
+        shell: bash
         run: |
-          mkdir -p ../artifact/boot
-          cp arch/x86/boot/bzImage ../artifact/boot/vmlinuz-linux-haswell
-          make INSTALL_MOD_PATH=../artifact modules_install
-          # Strip huge debug symbols to keep download small
-          find ../artifact/lib/modules -name "*.ko" -exec strip --strip-debug {} +
+          # We inject your aggressive config adjustments into the PKGBUILD's prepare() phase logic
+          # or simply create a config fragment.
+          
+          # 1. Get the base config
+          wget https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/config -O .config
+          
+          # 2. Apply your HASWELL & SPEED modifications
+          scripts/config --file .config --enable MNATIVE_INTEL
+          scripts/config --file .config --disable GENERIC_CPU
+          scripts/config --file .config --enable HZ_1000
+          scripts/config --file .config --disable HZ_300
+          scripts/config --file .config --enable SCHED_BORE
+          scripts/config --file .config --enable PREEMPT
+          
+          # 3. STRIP MITIGATIONS (The Unshackling)
+          scripts/config --file .config --disable PAGE_TABLE_ISOLATION
+          scripts/config --file .config --disable RETPOLINE
+          scripts/config --file .config --disable MITIGATION_SPECTRE_V2
+          scripts/config --file .config --disable MITIGATION_SPECTRE_V1
+          
+          # 4. Save this modified config to replace the one in the git repo
+          mv .config config
 
-      - name: Upload Artifact
+      - name: Compile (Makepkg)
+        working-directory: workdir
+        shell: bash
+        run: |
+          # Allow parallelism
+          export MAKEFLAGS="-j$(nproc)"
+          # Build the package (This generates the .pkg.tar.zst)
+          su builduser -c "makepkg -s --noconfirm --skippgpcheck"
+
+      - name: Upload Pacman Package
         uses: actions/upload-artifact@v4
         with:
-          name: haswell-speed-kernel
-          path: artifact/
+          name: cachyos-haswell-optimized
+          path: workdir/*.pkg.tar.zst

@@ -78,7 +78,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const ref = String(args?.ref || "main");
       const opt_level = String(args?.opt_level || "O3");
       
-      await githubRequest(`/actions/workflows/build-kernel.yml/dispatches`, {
+      await githubRequest(`/actions/workflows/kernel-build.yml/dispatches`, {
         method: "POST",
         body: JSON.stringify({
           ref: ref,
