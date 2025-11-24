@@ -1,3 +1,22 @@
+name: Build CachyOS Haswell Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+
+    steps:
+      - name: Install Base Tools
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git llvm clang lld wget
+
+      - name: Clone CachyOS PKGBUILD Repo
+        run: |
+          git clone https://github.com/CachyOS/linux-cachyos.git workdir
+      
       - name: Configure for Ultimate Performance
         working-directory: ./workdir/linux-cachyos
         run: |
@@ -12,25 +31,20 @@
           cd src/linux-*
           
           # --- MITIGATIONS (DISABLE ALL) ---
-          # "Make it unsafe but fast"
           scripts/config --disable CONFIG_PAGE_TABLE_ISOLATION
           scripts/config --disable CONFIG_RETPOLINE
           scripts/config --disable CONFIG_CPU_IBPB_ENTRY
           scripts/config --disable CONFIG_CPU_IBRS_ENTRY
           scripts/config --disable CONFIG_SLS
-          # Add 'mitigations=off' to command line default
           scripts/config --set-str CONFIG_CMDLINE "mitigations=off"
           scripts/config --enable CONFIG_CMDLINE_BOOL
           
           # --- PERFORMANCE & GOVERNOR ---
           scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-          # Force -O3 (Might require patch in some kernels, but we set the intent)
           scripts/config --disable CONFIG_CC_OPTIMIZE_FOR_SIZE
-          # Default Governor: Performance
           scripts/config --disable CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
           scripts/config --disable CONFIG_CPU_FREQ_DEFAULT_GOV_POWERSAVE
           scripts/config --enable CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-          # P-States (Intel)
           scripts/config --enable CONFIG_X86_INTEL_PSTATE
           
           # --- LTO (Link Time Optimization) ---
@@ -45,11 +59,10 @@
           scripts/config --disable CONFIG_FTRACE
           scripts/config --disable CONFIG_KALLSYMS
           scripts/config --disable CONFIG_SECURITY_DMESG_RESTRICT
-          # GPU Stripping
           scripts/config --disable CONFIG_DRM_AMDGPU
           scripts/config --disable CONFIG_DRM_NOUVEAU
           
-          # --- DOCKER SUPPORT (Essential) ---
+          # --- DOCKER SUPPORT ---
           scripts/config --enable CONFIG_NAMESPACES
           scripts/config --enable CONFIG_NET_NS
           scripts/config --enable CONFIG_PID_NS
@@ -77,9 +90,22 @@
           scripts/config --enable CONFIG_NF_NAT_NEEDED
           scripts/config --enable CONFIG_POSIX_MQUEUE
           
-          # --- TETHERING (Internet Fix) ---
+          # --- TETHERING ---
           scripts/config --enable CONFIG_USB_NET_RNDIS_HOST
           scripts/config --enable CONFIG_USB_NET_CDCETHER
           
           # Validate config
           make olddefconfig
+
+      - name: Compile Kernel
+        working-directory: ./workdir/linux-cachyos
+        run: |
+          chown -R builduser:builduser .
+          su builduser -c "makepkg --noextract --noprepare --skipinteg -s --noconfirm"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cachyos-haswell-kernel
+          path: |
+            workdir/linux-cachyos/*.pkg.tar.zst
