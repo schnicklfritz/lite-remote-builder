@@ -1,67 +1,85 @@
-name: Build Haswell Speed Kernel (Pacman Ready)
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: archlinux:latest
-    steps:
-      - name: Install Build Dependencies
+      - name: Configure for Ultimate Performance
+        working-directory: ./workdir/linux-cachyos
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git bc xmlto kmod inetutils libelf cpio perl tar xz python pahole wget
-          # Create build user because makepkg cannot run as root
+          # 1. Set Architecture to Haswell (v3)
+          sed -i 's/_march="x86-64-v3"/_march="x86-64-v3"/g' PKGBUILD
+          
+          # 2. Download Source
           useradd builduser -m
-          passwd -d builduser
-          printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers
           chown -R builduser:builduser .
-
-      - name: Checkout & Configure
-        shell: bash
-        run: |
-          # Clone CachyOS PKGBUILD source
-          su builduser -c "git clone https://github.com/CachyOS/linux-cachyos.git workdir"
-
-      - name: Apply Haswell Speed Patches
-        working-directory: workdir
-        shell: bash
-        run: |
-          # We inject your aggressive config adjustments into the PKGBUILD's prepare() phase logic
-          # or simply create a config fragment.
+          su builduser -c "makepkg --nobuild --skipinteg"
           
-          # 1. Get the base config
-          wget https://raw.githubusercontent.com/CachyOS/linux-cachyos/master/config -O .config
+          cd src/linux-*
           
-          # 2. Apply your HASWELL & SPEED modifications
-          scripts/config --file .config --enable MNATIVE_INTEL
-          scripts/config --file .config --disable GENERIC_CPU
-          scripts/config --file .config --enable HZ_1000
-          scripts/config --file .config --disable HZ_300
-          scripts/config --file .config --enable SCHED_BORE
-          scripts/config --file .config --enable PREEMPT
+          # --- MITIGATIONS (DISABLE ALL) ---
+          # "Make it unsafe but fast"
+          scripts/config --disable CONFIG_PAGE_TABLE_ISOLATION
+          scripts/config --disable CONFIG_RETPOLINE
+          scripts/config --disable CONFIG_CPU_IBPB_ENTRY
+          scripts/config --disable CONFIG_CPU_IBRS_ENTRY
+          scripts/config --disable CONFIG_SLS
+          # Add 'mitigations=off' to command line default
+          scripts/config --set-str CONFIG_CMDLINE "mitigations=off"
+          scripts/config --enable CONFIG_CMDLINE_BOOL
           
-          # 3. STRIP MITIGATIONS (The Unshackling)
-          scripts/config --file .config --disable PAGE_TABLE_ISOLATION
-          scripts/config --file .config --disable RETPOLINE
-          scripts/config --file .config --disable MITIGATION_SPECTRE_V2
-          scripts/config --file .config --disable MITIGATION_SPECTRE_V1
+          # --- PERFORMANCE & GOVERNOR ---
+          scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+          # Force -O3 (Might require patch in some kernels, but we set the intent)
+          scripts/config --disable CONFIG_CC_OPTIMIZE_FOR_SIZE
+          # Default Governor: Performance
+          scripts/config --disable CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
+          scripts/config --disable CONFIG_CPU_FREQ_DEFAULT_GOV_POWERSAVE
+          scripts/config --enable CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
+          # P-States (Intel)
+          scripts/config --enable CONFIG_X86_INTEL_PSTATE
           
-          # 4. Save this modified config to replace the one in the git repo
-          mv .config config
-
-      - name: Compile (Makepkg)
-        working-directory: workdir
-        shell: bash
-        run: |
-          # Allow parallelism
-          export MAKEFLAGS="-j$(nproc)"
-          # Build the package (This generates the .pkg.tar.zst)
-          su builduser -c "makepkg -s --noconfirm --skippgpcheck"
-
-      - name: Upload Pacman Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: cachyos-haswell-optimized
-          path: workdir/*.pkg.tar.zst
+          # --- LTO (Link Time Optimization) ---
+          scripts/config --enable CONFIG_LTO_CLANG
+          scripts/config --enable CONFIG_LTO_CLANG_THIN
+          scripts/config --disable CONFIG_LTO_CLANG_FULL
+          
+          # --- BLOAT REMOVAL & DEBUGGING ---
+          scripts/config --disable CONFIG_DEBUG_INFO
+          scripts/config --disable CONFIG_DEBUG_KERNEL
+          scripts/config --disable CONFIG_DEBUG_MISC
+          scripts/config --disable CONFIG_FTRACE
+          scripts/config --disable CONFIG_KALLSYMS
+          scripts/config --disable CONFIG_SECURITY_DMESG_RESTRICT
+          # GPU Stripping
+          scripts/config --disable CONFIG_DRM_AMDGPU
+          scripts/config --disable CONFIG_DRM_NOUVEAU
+          
+          # --- DOCKER SUPPORT (Essential) ---
+          scripts/config --enable CONFIG_NAMESPACES
+          scripts/config --enable CONFIG_NET_NS
+          scripts/config --enable CONFIG_PID_NS
+          scripts/config --enable CONFIG_IPC_NS
+          scripts/config --enable CONFIG_UTS_NS
+          scripts/config --enable CONFIG_CGROUPS
+          scripts/config --enable CONFIG_CGROUP_CPUACCT
+          scripts/config --enable CONFIG_CGROUP_DEVICE
+          scripts/config --enable CONFIG_CGROUP_FREEZER
+          scripts/config --enable CONFIG_CGROUP_SCHED
+          scripts/config --enable CONFIG_CPUSETS
+          scripts/config --enable CONFIG_MEMCG
+          scripts/config --enable CONFIG_KEYS
+          scripts/config --enable CONFIG_VETH
+          scripts/config --enable CONFIG_BRIDGE
+          scripts/config --enable CONFIG_BRIDGE_NETFILTER
+          scripts/config --enable CONFIG_NF_NAT_IPV4
+          scripts/config --enable CONFIG_IP_NF_FILTER
+          scripts/config --enable CONFIG_IP_NF_TARGET_MASQUERADE
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_ADDRTYPE
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_CONNTRACK
+          scripts/config --enable CONFIG_NETFILTER_XT_MATCH_IPVS
+          scripts/config --enable CONFIG_IP_NF_NAT
+          scripts/config --enable CONFIG_NF_NAT
+          scripts/config --enable CONFIG_NF_NAT_NEEDED
+          scripts/config --enable CONFIG_POSIX_MQUEUE
+          
+          # --- TETHERING (Internet Fix) ---
+          scripts/config --enable CONFIG_USB_NET_RNDIS_HOST
+          scripts/config --enable CONFIG_USB_NET_CDCETHER
+          
+          # Validate config
+          make olddefconfig
