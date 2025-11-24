@@ -29,7 +29,8 @@ jobs:
           chown -R builduser:builduser .
           su builduser -c "makepkg --nobuild --skipinteg"
           
-          cd src/linux-*
+          cd $(find src -maxdepth 1 -type d -name "linux-*" | head -n 1)
+
           
           # --- MITIGATIONS (DISABLE ALL) ---
           scripts/config --disable CONFIG_PAGE_TABLE_ISOLATION
