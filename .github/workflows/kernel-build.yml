@@ -11,8 +11,11 @@ jobs:
     steps:
       - name: Install Base Tools
         run: |
+          # Initialize pacman keys
+          pacman-key --init
+          pacman-key --populate archlinux
+          # Install dependencies for Kernel + Rust + BPF
           pacman -Syu --noconfirm --needed base-devel git llvm clang lld wget bc cpio pahole python rust rust-bindgen rust-src
-
 
       - name: Clone CachyOS PKGBUILD Repo
         run: |
@@ -29,8 +32,8 @@ jobs:
           chown -R builduser:builduser .
           su builduser -c "makepkg --nobuild --skipinteg"
           
+          # Go into the source directory (Robust Find)
           cd $(find src -maxdepth 1 -type d -name "linux-*" | head -n 1)
-
           
           # --- MITIGATIONS (DISABLE ALL) ---
           scripts/config --disable CONFIG_PAGE_TABLE_ISOLATION
@@ -49,20 +52,108 @@ jobs:
           scripts/config --enable CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
           scripts/config --enable CONFIG_X86_INTEL_PSTATE
           
-          # --- LTO (Link Time Optimization) ---
+          # --- LTO (DISABLE FOR BUILD SPEED) ---
+          # Enabling this doubles build time. Disabled for sanity.
           scripts/config --enable CONFIG_LTO_CLANG
           scripts/config --enable CONFIG_LTO_CLANG_THIN
           scripts/config --disable CONFIG_LTO_CLANG_FULL
           
-          # --- BLOAT REMOVAL & DEBUGGING ---
-          scripts/config --disable CONFIG_DEBUG_INFO
+          # --- DEBUG INFO (REQUIRED FOR BPF TOOLS) ---
+          # We must keep BTF enabled or the build crashes.
+          scripts/config --enable CONFIG_DEBUG_INFO
+          scripts/config --enable CONFIG_DEBUG_INFO_BTF
+          scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
+          scripts/config --disable CONFIG_DEBUG_INFO_DWARF4
+          # Disable heavy runtime debugging
           scripts/config --disable CONFIG_DEBUG_KERNEL
           scripts/config --disable CONFIG_DEBUG_MISC
           scripts/config --disable CONFIG_FTRACE
           scripts/config --disable CONFIG_KALLSYMS
           scripts/config --disable CONFIG_SECURITY_DMESG_RESTRICT
+          
+          # --- GPU STRIPPING (Intel Only) ---
           scripts/config --disable CONFIG_DRM_AMDGPU
           scripts/config --disable CONFIG_DRM_NOUVEAU
+          
+          # --- TAILORED DRIVER STRIPPING (ATHEROS AR9565 + REALTEK) ---
+          # WIFI: Keep Atheros, Kill Broadcom/Intel/Others
+          scripts/config --disable CONFIG_WLAN_VENDOR_ADMTEK
+          # scripts/config --disable CONFIG_WLAN_VENDOR_ATH  <-- KEPT!
+          scripts/config --disable CONFIG_WLAN_VENDOR_ATMEL
+          scripts/config --disable CONFIG_WLAN_VENDOR_BROADCOM
+          scripts/config --disable CONFIG_WLAN_VENDOR_CISCO
+          scripts/config --disable CONFIG_WLAN_VENDOR_INTERSIL
+          scripts/config --disable CONFIG_WLAN_VENDOR_MARVELL
+          scripts/config --disable CONFIG_WLAN_VENDOR_MEDIATEK
+          scripts/config --disable CONFIG_WLAN_VENDOR_RALINK
+          scripts/config --disable CONFIG_WLAN_VENDOR_REALTEK
+          scripts/config --disable CONFIG_WLAN_VENDOR_RSI
+          scripts/config --disable CONFIG_WLAN_VENDOR_ST
+          scripts/config --disable CONFIG_WLAN_VENDOR_TI
+          scripts/config --disable CONFIG_WLAN_VENDOR_ZYDAS
+          scripts/config --disable CONFIG_WLAN_VENDOR_QUANTENNA
+          
+          # Ensure Atheros modules are on
+          scripts/config --enable CONFIG_ATH9K
+          scripts/config --enable CONFIG_ATH9K_PCI
+          scripts/config --enable CONFIG_ATH9K_COMMON
+          
+          # ETHERNET: Keep Realtek, Kill Others
+          scripts/config --disable CONFIG_NET_VENDOR_3COM
+          scripts/config --disable CONFIG_NET_VENDOR_ADAPTEC
+          scripts/config --disable CONFIG_NET_VENDOR_AMAZON
+          scripts/config --disable CONFIG_NET_VENDOR_AMD
+          scripts/config --disable CONFIG_NET_VENDOR_AQUANTIA
+          scripts/config --disable CONFIG_NET_VENDOR_ARC
+          scripts/config --disable CONFIG_NET_VENDOR_ATHEROS
+          scripts/config --disable CONFIG_NET_VENDOR_BROADCOM
+          scripts/config --disable CONFIG_NET_VENDOR_CADENCE
+          scripts/config --disable CONFIG_NET_VENDOR_CAVIUM
+          scripts/config --disable CONFIG_NET_VENDOR_CHELSIO
+          scripts/config --disable CONFIG_NET_VENDOR_CISCO
+          scripts/config --disable CONFIG_NET_VENDOR_DEC
+          scripts/config --disable CONFIG_NET_VENDOR_DLINK
+          scripts/config --disable CONFIG_NET_VENDOR_EMULEX
+          scripts/config --disable CONFIG_NET_VENDOR_GOOGLE
+          scripts/config --disable CONFIG_NET_VENDOR_HUAWEI
+          scripts/config --disable CONFIG_NET_VENDOR_MARVELL
+          scripts/config --disable CONFIG_NET_VENDOR_MELLANOX
+          scripts/config --disable CONFIG_NET_VENDOR_MICREL
+          scripts/config --disable CONFIG_NET_VENDOR_MICROCHIP
+          scripts/config --disable CONFIG_NET_VENDOR_MICROSEMI
+          scripts/config --disable CONFIG_NET_VENDOR_MYRI
+          scripts/config --disable CONFIG_NET_VENDOR_NATSEMI
+          scripts/config --disable CONFIG_NET_VENDOR_NETERION
+          scripts/config --disable CONFIG_NET_VENDOR_NI
+          scripts/config --disable CONFIG_NET_VENDOR_NVIDIA
+          scripts/config --disable CONFIG_NET_VENDOR_OKI
+          scripts/config --disable CONFIG_NET_VENDOR_PACKET_ENGINES
+          scripts/config --disable CONFIG_NET_VENDOR_QLOGIC
+          scripts/config --disable CONFIG_NET_VENDOR_QUALCOMM
+          scripts/config --disable CONFIG_NET_VENDOR_RDC
+          scripts/config --disable CONFIG_NET_VENDOR_RENESAS
+          scripts/config --disable CONFIG_NET_VENDOR_ROCKER
+          scripts/config --disable CONFIG_NET_VENDOR_SAMSUNG
+          scripts/config --disable CONFIG_NET_VENDOR_SEEQ
+          scripts/config --disable CONFIG_NET_VENDOR_SOLARFLARE
+          scripts/config --disable CONFIG_NET_VENDOR_SILAN
+          scripts/config --disable CONFIG_NET_VENDOR_SIS
+          scripts/config --disable CONFIG_NET_VENDOR_SMSC
+          scripts/config --disable CONFIG_NET_VENDOR_SOCIONEXT
+          scripts/config --disable CONFIG_NET_VENDOR_STMICRO
+          scripts/config --disable CONFIG_NET_VENDOR_SUN
+          scripts/config --disable CONFIG_NET_VENDOR_SYNOPSYS
+          scripts/config --disable CONFIG_NET_VENDOR_TEHUTI
+          scripts/config --disable CONFIG_NET_VENDOR_TI
+          scripts/config --disable CONFIG_NET_VENDOR_VIA
+          scripts/config --disable CONFIG_NET_VENDOR_WIZNET
+          scripts/config --disable CONFIG_NET_VENDOR_XILINX
+          # scripts/config --disable CONFIG_NET_VENDOR_REALTEK <-- KEPT!
+          
+          # SOUND (Keep Intel HDA)
+          scripts/config --disable CONFIG_SND_SOC
+          scripts/config --disable CONFIG_SND_PCI
+          scripts/config --enable CONFIG_SND_HDA_INTEL
           
           # --- DOCKER SUPPORT ---
           scripts/config --enable CONFIG_NAMESPACES
@@ -103,6 +194,7 @@ jobs:
         working-directory: ./workdir/linux-cachyos
         run: |
           chown -R builduser:builduser .
+          # -s installs dependencies (bc, cpio, etc if missing but we installed them)
           su builduser -c "makepkg --noextract --noprepare --skipinteg -s --noconfirm"
 
       - name: Upload Artifacts
