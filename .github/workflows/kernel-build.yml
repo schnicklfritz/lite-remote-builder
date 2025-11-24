@@ -11,7 +11,8 @@ jobs:
     steps:
       - name: Install Base Tools
         run: |
-          pacman -Syu --noconfirm --needed base-devel git llvm clang lld wget
+          pacman -Syu --noconfirm --needed base-devel git llvm clang lld wget bc cpio pahole python rust rust-bindgen rust-src
+
 
       - name: Clone CachyOS PKGBUILD Repo
         run: |
